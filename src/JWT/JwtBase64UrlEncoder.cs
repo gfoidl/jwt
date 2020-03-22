@@ -1,5 +1,9 @@
 using System;
 
+#if NETSTANDARD2_0
+using gfoidl.Base64;
+#endif
+
 namespace JWT
 {
     /// <summary>
@@ -17,11 +21,22 @@ namespace JWT
             if (input.Length == 0)
                 throw new ArgumentOutOfRangeException(nameof(input));
 
+#if NETSTANDARD2_0
+            return Base64.Url.Encode(input);
+#else
             var output = Convert.ToBase64String(input);
-            output = output.Split('=')[0]; // Remove any trailing '='s
+
+            // Remove any trailing '='s
+            var idx = output.IndexOf('=');
+            if (idx > 0)
+            {
+                output = output.Substring(0, idx);
+            }
+
             output = output.Replace('+', '-'); // 62nd char of encoding
             output = output.Replace('/', '_'); // 63rd char of encoding
             return output;
+#endif
         }
 
         /// <inheritdoc />
@@ -32,6 +47,9 @@ namespace JWT
             if (String.IsNullOrWhiteSpace(input))
                 throw new ArgumentException(nameof(input));
 
+#if NETSTANDARD2_0
+            return Base64.Url.Decode(input.AsSpan());
+#else
             var output = input;
             output = output.Replace('-', '+'); // 62nd char of encoding
             output = output.Replace('_', '/'); // 63rd char of encoding
@@ -48,8 +66,10 @@ namespace JWT
                 default:
                     throw new FormatException("Illegal base64url string.");
             }
-            var converted = Convert.FromBase64String(output); // Standard base64 decoder
-            return converted;
+
+             // Standard base64 decoder
+            return Convert.FromBase64String(output);
+#endif
         }
     }
 }
